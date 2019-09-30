@@ -1,0 +1,17 @@
+<launch>
+  <arg name="vehicle" default="$(optenv RIS_VEHICLE_NAME danaus06)"/>
+  <arg name="joystick" default="logitech"/>
+  <arg name="teleop_style" default="car_style"/>
+
+  <!--Joystick Handler -->
+  <node pkg="joystick_handler" name="joystick_handler" type="joystick_handler" output="screen">
+    <rosparam file="$(find joystick_ui)/config/joystick/$(arg joystick).yaml"/>
+    <rosparam file="$(find joystick_ui)/config/teleop/$(arg teleop_style).yaml"/>
+    <rosparam file="$(find joystick_handler)/config/joystick.yaml"/>
+    <remap from="~joy" to="/$(arg vehicle)/joy"/>
+    <remap from="~joy_raw" to="/$(arg vehicle)/joy_raw"/>
+    <remap from="~joy_filtered" to="/$(arg vehicle)/joy_filtered"/>
+    <remap from="~flags" to="flags"/>
+
+  </node>
+</launch>

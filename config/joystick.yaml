@@ -1,0 +1,12 @@
+# joystick parameters
+joystick:
+  enable_joystick_deadband: false
+  joystick_deadband: 0.09
+  sensitivity: 0.001
+
+# 1euro joystick filter
+1euro_filter:
+  enable: false
+  mincutoff: 1.0 # minimum cutoff frequency [Hz] (between 0 and 2)
+  beta: 1.0 # cutoff slope (between 0 and 3)
+  dcutoff: 1.0 # cutoff frequency for derivate [Hz]

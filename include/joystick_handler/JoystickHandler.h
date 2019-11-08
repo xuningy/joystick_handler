@@ -39,6 +39,7 @@ public:
 private:
   void flagsCallback(const control_arch::FsmFlags::ConstPtr& msg);
   void joystickCallback(const sensor_msgs::Joy::ConstPtr& msg);
+  void joystickTimer(const ros::TimerEvent& event);
 
   bool flagEnabledQ(const std::string &flag);
 
@@ -55,17 +56,22 @@ private:
 
   ros::Publisher joy_filtered_pub_;
   ros::Publisher joy_raw_pub_;
+  ros::Publisher joy_first_order_pub_;
+  geometry_utils::Vec4 previous_joy_raw_input_;
 
+
+  ros::Timer joy_timer_;
 
   geometry_utils::Vec4 joy_input_;        // Raw joystick values in [-1, 1]
   geometry_utils::Vec4 previous_joy_input_;        // Raw joystick values in [-1, 1]
-
+  ros::Time previous_t_;
   bool side_velocity_enabled_;
 
   // Joystick deadband
   bool joystick_deadband_enabled_;
   float joystick_deadband_;
   float sensitivity_;
+  float frequency_;
 
   // Joystick mapping
   JoyMapper joy_mapper_;

@@ -33,19 +33,25 @@ bool JoystickHandler::initialize(const ros::NodeHandle& n)
 
   ros::NodeHandle nh(n);
 
-  flags_sub_ = nh.subscribe("flags", 0, &JoystickHandler::flagsCallback, this);
-  joy_sub_ = nh.subscribe("joy", 1, &JoystickHandler::joystickCallback, this);
-  joy_raw_pub_ = nh.advertise<joystick_handler::JoystickValues>("joy_raw", 1);
-  joy_filtered_pub_ =
-    nh.advertise<joystick_handler::JoystickValues>("joy_filtered", 1);
-
-  previous_joy_input_ = gu::Vec4(0.0, 0.0, 0.0, 0.0);
-  joy_input_ = gu::Vec4(0.0, 0.0, 0.0, 0.0);
-
   // Joystick deadband
   pu::get("joystick/enable_joystick_deadband", joystick_deadband_enabled_, true);
   pu::get("joystick/joystick_deadband", joystick_deadband_, (float)0.09);
   pu::get("joystick/sensitivity", sensitivity_, (float)0.00001);
+  pu::get("joystick/frequency", frequency_, (float)10);
+
+  flags_sub_ = nh.subscribe("flags", 0, &JoystickHandler::flagsCallback, this);
+  joy_sub_ = nh.subscribe("joy", 1, &JoystickHandler::joystickCallback, this);
+  joy_raw_pub_ = nh.advertise<joystick_handler::JoystickValues>("joy_raw", 1);
+  joy_first_order_pub_ = nh.advertise<joystick_handler::JoystickValues>("joy_first_order", 1);
+  joy_filtered_pub_ =
+    nh.advertise<joystick_handler::JoystickValues>("joy_filtered", 1);
+
+  joy_timer_ = nh.createTimer(ros::Duration(1.0/frequency_), &JoystickHandler::joystickTimer, this);
+
+  previous_joy_input_ = gu::Vec4(0.0, 0.0, 0.0, 0.0);
+  previous_joy_raw_input_ = gu::Vec4(0.0, 0.0, 0.0, 0.0);
+  joy_input_ = gu::Vec4(0.0, 0.0, 0.0, 0.0);
+  previous_t_ = ros::Time::now();
 
 
   // Joy Mapper
@@ -120,8 +126,7 @@ double JoystickHandler::joyDead(double value, double deadband) {
   return m * (value + deadband);
 }
 
-void JoystickHandler::joystickCallback(const
-  sensor_msgs::Joy::ConstPtr& msg)
+void JoystickHandler::joystickCallback(const sensor_msgs::Joy::ConstPtr& msg)
 {
   if (!flagEnabledQ("teleop")) return;
 
@@ -133,6 +138,7 @@ void JoystickHandler::joystickCallback(const
       name_.c_str(), msg->axes.size());
     return;
   }
+  previous_joy_raw_input_ = joy_input_;
 
   joy_input_(FORWARD) = msg->axes[joystick_forward_];
   joy_input_(YAW) = msg->axes[joystick_yaw_];
@@ -149,13 +155,30 @@ void JoystickHandler::joystickCallback(const
   joy_raw_msg.omega = joy_input_(YAW);
   joy_raw_pub_.publish(joy_raw_msg);
 
+  // Publish the raw value
+  joystick_handler::JoystickValues joy_first_order_msg;
+
+  float dt = (msg->header.stamp - previous_t_).toSec();
+
+  auto joy_first_order = (joy_input_ - previous_joy_raw_input_)/dt;
+
+  joy_first_order_msg.header.stamp = msg->header.stamp;
+  joy_first_order_msg.v_x = joy_first_order(FORWARD);
+  joy_first_order_msg.v_side = joy_first_order(SIDE);
+  joy_first_order_msg.v_z = joy_first_order(Z);
+  joy_first_order_msg.omega = joy_first_order(YAW);
+
+  joy_first_order_pub_.publish(joy_first_order_msg);
+
+  previous_joy_raw_input_ = joy_input_;
+  previous_t_ = msg->header.stamp;
+
   // Joystick Filtering using 1 euro filter
   if (euro_filter_on_) {
     std::cout << "Joy input before: " << joy_input_ << std::endl;
     joy_input_ = joystick_filter_->filter(joy_input_);
     std::cout << "Joy input after: " << joy_input_ << std::endl;
   }
-
   // Apply deadband cancellation.
   if (joystick_deadband_enabled_)
   {
@@ -168,7 +191,7 @@ void JoystickHandler::joystickCallback(const
   bool change_in_input = false;
   change_in_input = (joy_input_ - previous_joy_input_).norm() > sensitivity_;
 
-  if (change_in_input) {
+  if (change_in_input && joy_first_order.norm() < 3) {
     // Publish the mapped joystick inputs to joystick_input topic.
     joystick_handler::JoystickValues joy_filtered_msg;
 
@@ -179,8 +202,14 @@ void JoystickHandler::joystickCallback(const
     joy_filtered_msg.omega = joy_input_(YAW);
     joy_filtered_pub_.publish(joy_filtered_msg);
     previous_joy_input_ = joy_input_;
-
   }
+
+
+}
+
+void JoystickHandler::joystickTimer(const ros::TimerEvent& event)
+{
+
 
 }
 

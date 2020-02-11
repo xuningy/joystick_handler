@@ -37,7 +37,7 @@ bool JoystickHandler::initialize(const ros::NodeHandle& n)
   pu::get("joystick/enable_joystick_deadband", joystick_deadband_enabled_, true);
   pu::get("joystick/joystick_deadband", joystick_deadband_, (float)0.09);
   pu::get("joystick/sensitivity", sensitivity_, (float)0.00001);
-  pu::get("joystick/frequency", frequency_, (float)10);
+  // pu::get("joystick/frequency", frequency_, (float)10);
 
   flags_sub_ = nh.subscribe("flags", 0, &JoystickHandler::flagsCallback, this);
   joy_sub_ = nh.subscribe("joy", 1, &JoystickHandler::joystickCallback, this);
@@ -46,7 +46,7 @@ bool JoystickHandler::initialize(const ros::NodeHandle& n)
   joy_filtered_pub_ =
     nh.advertise<joystick_handler::JoystickValues>("joy_filtered", 1);
 
-  joy_timer_ = nh.createTimer(ros::Duration(1.0/frequency_), &JoystickHandler::joystickTimer, this);
+  // joy_timer_ = nh.createTimer(ros::Duration(1.0/frequency_), &JoystickHandler::joystickTimer, this);
 
   previous_joy_input_ = gu::Vec4(0.0, 0.0, 0.0, 0.0);
   previous_joy_raw_input_ = gu::Vec4(0.0, 0.0, 0.0, 0.0);
@@ -207,10 +207,8 @@ void JoystickHandler::joystickCallback(const sensor_msgs::Joy::ConstPtr& msg)
 
 }
 
-void JoystickHandler::joystickTimer(const ros::TimerEvent& event)
-{
-
-
-}
+// void JoystickHandler::joystickTimer(const ros::TimerEvent& event)
+// {
+// }
 
 } // namespace planner

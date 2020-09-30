@@ -1,9 +1,8 @@
 # joystick parameters
 joystick:
   enable_joystick_deadband: true
-  joystick_deadband: 0.09
+  joystick_deadband: 0.03
   sensitivity: 0.01
-  frequency: 10 # Hz
 
 # 1euro joystick filter
 1euro_filter:

@@ -72,7 +72,7 @@ bool JoystickHandler::initialize(const ros::NodeHandle& n)
 
   // Joystick filtering
   pu::get("1euro_filter/enable", euro_filter_on_, false);
-  pu::get("teleoperation/side_velocity_enabled", side_velocity_enabled_, false);
+  pu::get("teleoperation/side_velocity_enabled", side_velocity_enabled_, false); //XUNING hack 07/23/2020
 
   if (euro_filter_on_) {
     joystick_filter_ = std::make_unique<JoystickFilter>();
@@ -145,7 +145,7 @@ void JoystickHandler::joystickCallback(const sensor_msgs::Joy::ConstPtr& msg)
   joy_input_(Z) = msg->axes[joystick_z_];
   joy_input_(SIDE) = side_velocity_enabled_ ? msg->axes[joystick_side_] : 0;
 
-  // Publish the raw value
+  // Publish the raw value (TOPIC NOT USED, FOR DEBUG ONLY. MESSAGE TYPE IS THE SAME AS JOY_FILTERED, SO COULD BE USED IF DESIRED TO BYPASS ANY KIND OF FILTERING.)
   joystick_handler::JoystickValues joy_raw_msg;
 
   joy_raw_msg.header.stamp = msg->header.stamp;
@@ -155,12 +155,13 @@ void JoystickHandler::joystickCallback(const sensor_msgs::Joy::ConstPtr& msg)
   joy_raw_msg.omega = joy_input_(YAW);
   joy_raw_pub_.publish(joy_raw_msg);
 
-  // Publish the raw value
+  // Publish the first order derivative of the joystick values (TOPIC NOT USED, FOR DEBUG ONLY)
   joystick_handler::JoystickValues joy_first_order_msg;
 
   float dt = (msg->header.stamp - previous_t_).toSec();
 
   auto joy_first_order = (joy_input_ - previous_joy_raw_input_)/dt;
+  auto joy_stream_diff = (joy_input_ - previous_joy_raw_input_);
 
   joy_first_order_msg.header.stamp = msg->header.stamp;
   joy_first_order_msg.v_x = joy_first_order(FORWARD);
@@ -179,6 +180,7 @@ void JoystickHandler::joystickCallback(const sensor_msgs::Joy::ConstPtr& msg)
     joy_input_ = joystick_filter_->filter(joy_input_);
     std::cout << "Joy input after: " << joy_input_ << std::endl;
   }
+
   // Apply deadband cancellation.
   if (joystick_deadband_enabled_)
   {
@@ -191,8 +193,27 @@ void JoystickHandler::joystickCallback(const sensor_msgs::Joy::ConstPtr& msg)
   bool change_in_input = false;
   change_in_input = (joy_input_ - previous_joy_input_).norm() > sensitivity_;
 
-  if (change_in_input && joy_first_order.norm() < 3) {
-    // Publish the mapped joystick inputs to joystick_input topic.
+  // Publish the filtered input.
+
+  ROS_DEBUG("Previous input: (%.2f, %.2f, %.2f, %.2f), current (%.2f, %.2f, %.2f, %.2f), difference: %.4f joy_first_order (%.2f, %.2f, %.2f, %.2f) with norm %.3f",
+  previous_joy_input_(FORWARD), previous_joy_input_(SIDE), previous_joy_input_(Z), previous_joy_input_(YAW),
+  joy_input_(FORWARD), joy_input_(SIDE), joy_input_(Z), joy_input_(YAW),
+  (joy_input_ - previous_joy_input_).norm(),
+  joy_first_order(FORWARD), joy_first_order(SIDE), joy_first_order(Z), joy_first_order(YAW), joy_first_order.norm());
+
+  // if (change_in_input) {
+  // place a check on the first_order norm if joy_node's autorepeat_rate is set. However, the hard-coded 2 should be a function of the autorepeat_rate parameter.
+  if (change_in_input && joy_first_order.norm() < 2) { // should be equivalent as below given fixed dt.
+  // if (change_in_input && joy_stream_diff.norm() < 0.05) {
+
+    // ROS_INFO("Previous input: (%.2f, %.2f, %.2f, %.2f), current (%.2f, %.2f, %.2f, %.2f), difference: %.4f joy_first_order (%.2f, %.2f, %.2f, %.2f) with norm %.3f",
+    // previous_joy_input_(FORWARD), previous_joy_input_(SIDE), previous_joy_input_(Z), previous_joy_input_(YAW),
+    // joy_input_(FORWARD), joy_input_(SIDE), joy_input_(Z), joy_input_(YAW),
+    // (joy_input_ - previous_joy_input_).norm(),
+    // joy_first_order(FORWARD), joy_first_order(SIDE), joy_first_order(Z), joy_first_order(YAW), joy_first_order.norm());
+
+
+    // Publish the mapped joystick inputs to the filtered topic.
     joystick_handler::JoystickValues joy_filtered_msg;
 
     joy_filtered_msg.header.stamp = msg->header.stamp;

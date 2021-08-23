@@ -17,10 +17,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <joystick_handler/JoystickHandler.h>
 #include <joystick_handler/JoystickValues.h>
 
-#include <parameter_utils/ParameterUtils.h>
-
-namespace gu = geometry_utils;
-namespace pu = parameter_utils;
+#include <ros_utils/ParameterUtils.h>
 
 namespace planner {
 
@@ -34,12 +31,11 @@ bool JoystickHandler::initialize(const ros::NodeHandle& n)
   ros::NodeHandle nh(n);
 
   // Joystick deadband
-  pu::get("joystick/enable_joystick_deadband", joystick_deadband_enabled_, true);
-  pu::get("joystick/joystick_deadband", joystick_deadband_, (float)0.09);
-  pu::get("joystick/sensitivity", sensitivity_, (float)0.00001);
-  // pu::get("joystick/frequency", frequency_, (float)10);
+  param_utils::get("joystick/enable_joystick_deadband", joystick_deadband_enabled_, true);
+  param_utils::get("joystick/joystick_deadband", joystick_deadband_, (float)0.09);
+  param_utils::get("joystick/sensitivity", sensitivity_, (float)0.00001);
+  // param_utils::get("joystick/frequency", frequency_, (float)10);
 
-  flags_sub_ = nh.subscribe("flags", 0, &JoystickHandler::flagsCallback, this);
   joy_sub_ = nh.subscribe("joy", 1, &JoystickHandler::joystickCallback, this);
   joy_raw_pub_ = nh.advertise<joystick_handler::JoystickValues>("joy_raw", 1);
   joy_first_order_pub_ = nh.advertise<joystick_handler::JoystickValues>("joy_first_order", 1);
@@ -48,13 +44,13 @@ bool JoystickHandler::initialize(const ros::NodeHandle& n)
 
   // joy_timer_ = nh.createTimer(ros::Duration(1.0/frequency_), &JoystickHandler::joystickTimer, this);
 
-  previous_joy_input_ = gu::Vec4(0.0, 0.0, 0.0, 0.0);
-  previous_joy_raw_input_ = gu::Vec4(0.0, 0.0, 0.0, 0.0);
-  joy_input_ = gu::Vec4(0.0, 0.0, 0.0, 0.0);
+  previous_joy_input_ = Eigen::Vector4d(0.0, 0.0, 0.0, 0.0);
+  previous_joy_raw_input_ = Eigen::Vector4d(0.0, 0.0, 0.0, 0.0);
+  joy_input_ = Eigen::Vector4d(0.0, 0.0, 0.0, 0.0);
   previous_t_ = ros::Time::now();
 
 
-  // Joy Mapper
+  // Joy Mapper (can be replaced with default values)
 
   if (!joy_mapper_.initialize(n)) {
     ROS_ERROR("%s: Failed to initialize JoyMapper.", name_.c_str());
@@ -71,8 +67,8 @@ bool JoystickHandler::initialize(const ros::NodeHandle& n)
     return false;
 
   // Joystick filtering
-  pu::get("1euro_filter/enable", euro_filter_on_, false);
-  pu::get("teleoperation/side_velocity_enabled", side_velocity_enabled_, false); //XUNING hack 07/23/2020
+  param_utils::get("1euro_filter/enable", euro_filter_on_, false);
+  param_utils::get("teleoperation/side_velocity_enabled", side_velocity_enabled_, false);
 
   if (euro_filter_on_) {
     joystick_filter_ = std::make_unique<JoystickFilter>();
@@ -100,17 +96,6 @@ bool JoystickHandler::initialize(const ros::NodeHandle& n)
   return true;
 }
 
-void JoystickHandler::flagsCallback(const control_arch::FsmFlags::ConstPtr& msg)
-{
-  flags_.clear();
-  flags_.insert(msg->flags.begin(), msg->flags.end());
-}
-
-bool JoystickHandler::flagEnabledQ(const std::string& flag)
-{
-  return flags_.count(flag) != 0;
-}
-
 double JoystickHandler::joyDead(double value, double deadband) {
   // Linear function with a deadzone around zero.
   // Maps [-1, 1] to [-1, -deadband], 0, [deadband, 1].
@@ -128,7 +113,7 @@ double JoystickHandler::joyDead(double value, double deadband) {
 
 void JoystickHandler::joystickCallback(const sensor_msgs::Joy::ConstPtr& msg)
 {
-  if (!flagEnabledQ("teleop")) return;
+  if (!control_io_.FSMModeEnabled("teleop")) return;
 
   if (joystick_forward_ >= static_cast<int>(msg->axes.size()) ||
       joystick_yaw_     >= static_cast<int>(msg->axes.size()) ||
@@ -227,9 +212,5 @@ void JoystickHandler::joystickCallback(const sensor_msgs::Joy::ConstPtr& msg)
 
 
 }
-
-// void JoystickHandler::joystickTimer(const ros::TimerEvent& event)
-// {
-// }
 
 } // namespace planner

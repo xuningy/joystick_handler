@@ -9,22 +9,18 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>roscpp</build_depend>
-  <build_depend>geometry_utils</build_depend>
-  <build_depend>control_arch</build_depend>
   <build_depend>joystick_ui</build_depend>
-  <build_depend>parameter_utils</build_depend>
-  <build_depend>quadrotor_msgs</build_depend>
-  <build_depend>one_euro_filter</build_depend>
+  <build_depend>ros_utils</build_depend>
   <build_depend>std_msgs</build_depend>
+  <build_depend>one_euro_filter</build_depend>
+  <build_depend>planning_control_interface</build_depend>
 
   <run_depend>roscpp</run_depend>
-  <run_depend>geometry_utils</run_depend>
-  <run_depend>control_arch</run_depend>
   <run_depend>joystick_ui</run_depend>
-  <run_depend>parameter_utils</run_depend>
-  <run_depend>quadrotor_msgs</run_depend>
-  <run_depend>one_euro_filter</run_depend>
+  <run_depend>ros_utils</run_depend>
   <run_depend>std_msgs</run_depend>
+  <run_depend>one_euro_filter</run_depend>
+  <run_depend>planning_control_interface</run_depend>
 
   <build_depend>message_generation</build_depend>
   <run_depend>message_runtime</run_depend>

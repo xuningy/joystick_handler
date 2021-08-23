@@ -16,15 +16,14 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #pragma once
 
 #include <iostream>
-
+#include <Eigen/Core>
 #include <ros/ros.h>
 #include <nav_msgs/Path.h>
 #include <sensor_msgs/Joy.h>
 
-#include <control_arch/FsmFlags.h>
-#include <geometry_utils/GeometryUtils.h>
 #include <joystick_handler/filters/JoystickFilter.h>
 #include <joystick_ui/JoyMapper.h>
+#include <planning_control_interface/ControlArchInterface.h>
 
 namespace planner {
 
@@ -37,11 +36,8 @@ public:
   bool initialize(const ros::NodeHandle &n);
 
 private:
-  void flagsCallback(const control_arch::FsmFlags::ConstPtr& msg);
   void joystickCallback(const sensor_msgs::Joy::ConstPtr& msg);
   void joystickTimer(const ros::TimerEvent& event);
-
-  bool flagEnabledQ(const std::string &flag);
 
   double joyDead(double value, double deadband);
 
@@ -49,21 +45,21 @@ private:
   std::string name_;                            // Node name
   std::string fixed_frame_id_;                // Vehicle base frame ID
   std::string vehicle_frame_id_;                // Vehicle base frame ID
-  std::set<std::string> flags_;                 // Flags for state of vehicle
+
+  ControlArchInterface control_io_;
 
   ros::Subscriber joy_sub_;
-  ros::Subscriber flags_sub_;
 
   ros::Publisher joy_filtered_pub_;
   ros::Publisher joy_raw_pub_;
   ros::Publisher joy_first_order_pub_;
-  geometry_utils::Vec4 previous_joy_raw_input_;
+  Eigen::Vector4d previous_joy_raw_input_;
 
 
   ros::Timer joy_timer_;
 
-  geometry_utils::Vec4 joy_input_;        // Raw joystick values in [-1, 1]
-  geometry_utils::Vec4 previous_joy_input_;        // Raw joystick values in [-1, 1]
+  Eigen::Vector4d joy_input_;        // Raw joystick values in [-1, 1]
+  Eigen::Vector4d previous_joy_input_;        // Raw joystick values in [-1, 1]
   ros::Time previous_t_;
   bool side_velocity_enabled_;
 

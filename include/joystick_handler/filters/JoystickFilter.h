@@ -17,16 +17,12 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include <chrono>
 #include <memory>
-
+#include <Eigen/Core>
 #include <ros/ros.h>
 
-#include <geometry_utils/GeometryUtils.h>
-#include <parameter_utils/ParameterUtils.h>
+#include <ros_utils/ParameterUtils.h>
 
 #include <one_euro_filter/OneEuroFilter.h>
-
-namespace gu = geometry_utils;
-namespace pu = parameter_utils;
 
 class JoystickFilter
 {
@@ -41,11 +37,11 @@ public:
     // Frequency is the same as the joystick polling frequency.
     // This frequency is also updated internally by the OneEuroFilter.
     double period;
-    pu::get("teleoperation/traj_gen_rate", period, 0.1);
+    param_utils::get("teleoperation/traj_gen_rate", period, 0.1);
     freq_ = 1 / period;
-    if (!pu::get("1euro_filter/mincutoff", mincutoff_)) return false;
-    if (!pu::get("1euro_filter/beta", beta_)) return false;
-    if (!pu::get("1euro_filter/dcutoff", dcutoff_)) return false;
+    if (!param_utils::get("1euro_filter/mincutoff", mincutoff_)) return false;
+    if (!param_utils::get("1euro_filter/beta", beta_)) return false;
+    if (!param_utils::get("1euro_filter/dcutoff", dcutoff_)) return false;
 
     // Start Four OneEuroFilters, one for each input.
     linear_vel_ = std::make_unique<OneEuroFilter>(
@@ -61,9 +57,9 @@ public:
     return true;
   }
 
-  gu::Vec4 filter(const gu::Vec4& joy_input) {
+  Eigen::Vector4d filter(const Eigen::Vector4d& joy_input) {
     auto now = std::chrono::high_resolution_clock::now();
-    gu::Vec4 joy_input_filtered;
+    Eigen::Vector4d joy_input_filtered;
 
     joy_input_filtered(0) = linear_vel_->filter(joy_input(0), now);
     joy_input_filtered(1) = angular_vel_->filter(joy_input(1), now);

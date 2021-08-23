@@ -5,13 +5,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
 find_package(catkin REQUIRED COMPONENTS
       roscpp
-      control_arch
-      geometry_utils
       joystick_ui
-      parameter_utils
-      quadrotor_msgs
+      ros_utils
       one_euro_filter
       std_msgs
+      planning_control_interface
 )
 
 add_message_files(
@@ -29,13 +27,11 @@ catkin_package(
       LIBRARIES ${PROJECT_NAME}
       CATKIN_DEPENDS
             roscpp
-            control_arch
-            geometry_utils
             joystick_ui
-            parameter_utils
-            quadrotor_msgs
+            ros_utils
             one_euro_filter
             std_msgs
+            planning_control_interface
 )
 
 include_directories(include
